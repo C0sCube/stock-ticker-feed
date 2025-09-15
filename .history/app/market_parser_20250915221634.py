@@ -49,26 +49,26 @@ class MarketDataParser:
         Helper.write_file(symbol_path, data_csv, "a")
         
         
-
-class SplitMarketDataParser:
-    def __init__(self, config):
-        self.ports = config["NSE_PORTS"]
-        self.header = config.get("CSV_HEADER")
-        self.symbol_set = set()
-
-    def extract_ports(self, ticker: str):
-        
-        parts = ticker.strip().split("||")
+    
+    def parse_ticker(self,tick):
+        parts = tick.strip().split("||")
         if len(parts) < 6:
-            return None, []
+            return None, {}
 
-        symbol = parts[4]
-        kv_string = parts[-1]
+        # T||0||NS||1||CCLPROD.NS||4=905.00~6=66~5=906.20~7=5~2=905.00~~3=1~100=348~5620=A~302=905.00~300=905.00~301=905.00~304=902.55~5939=TRADING~118=905.00~18=314940.000000
+        symbol = parts[4]    
+        kv_string = parts[-1] 
 
         kv_pairs = [kv.split("=", 1) for kv in kv_string.split("~") if "=" in kv]
         field_map = {k: v for k, v in kv_pairs}
 
-        # port-data to extract
+        return symbol, field_map
+    
+    def extract_ports(self, ticker):
+        symbol, field_map = self.parse_ticker(ticker)
+        if not symbol:
+            return []
+
         data_set = []
         for port_name, port_val in self.ports.items():
             if port_name == "DATETIME":
@@ -82,19 +82,6 @@ class SplitMarketDataParser:
                 value = field_map.get(port_val, "N/A")
             data_set.append(value)
 
-        return symbol, data_set
-
-    def process_ticker(self, ticker: str):
-        symbol, data = self.extract_ports(ticker)
-        if not symbol or not data:
-            return
-
-        row = ",".join(data) + "\n"
-        symbol_path = os.path.join(OUTPUT_DIR, f"{symbol}.csv")
-
-        if not os.path.exists(symbol_path):
-            Helper.write_file(symbol_path, self.header, mode="a")
-
-        Helper.write_file(symbol_path, row, "a")
+        return data_set
 
 

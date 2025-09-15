@@ -49,8 +49,14 @@ class MarketDataParser:
         Helper.write_file(symbol_path, data_csv, "a")
         
         
+    
+import os
+from app.utils import Helper
+from app.logger import log
+from app.config import OUTPUT_DIR
 
-class SplitMarketDataParser:
+
+class MarketDataParser:
     def __init__(self, config):
         self.ports = config["NSE_PORTS"]
         self.header = config.get("CSV_HEADER")
@@ -67,6 +73,10 @@ class SplitMarketDataParser:
 
         kv_pairs = [kv.split("=", 1) for kv in kv_string.split("~") if "=" in kv]
         field_map = {k: v for k, v in kv_pairs}
+
+        if "6840" in field_map:
+            log().notice(f"Meta line → {symbol} group={field_map['6840']}")
+            return None, []
 
         # port-data to extract
         data_set = []
@@ -96,5 +106,6 @@ class SplitMarketDataParser:
             Helper.write_file(symbol_path, self.header, mode="a")
 
         Helper.write_file(symbol_path, row, "a")
+        log().debug(f"Saved row for {symbol}: {row.strip()}")
 
 

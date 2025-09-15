@@ -23,6 +23,5 @@
         SELL_QTY: "7",
         LTQ: "3",
     },
-    BSE_REGEX: {},
     CSV_HEADER: "Date,Time,LTP,BuyPrice,BuyQty,SellPrice,SellQty,LTQ\n",
 }

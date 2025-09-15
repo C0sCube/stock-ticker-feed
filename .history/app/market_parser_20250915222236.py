@@ -96,5 +96,6 @@ class SplitMarketDataParser:
             Helper.write_file(symbol_path, self.header, mode="a")
 
         Helper.write_file(symbol_path, row, "a")
+        log().debug(f"Saved row for {symbol}: {row.strip()}")
 
 

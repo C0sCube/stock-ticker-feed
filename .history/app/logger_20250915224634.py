@@ -89,7 +89,6 @@ def setup_logger(
     if to_file:
         # timestamp = datetime.now().strftime('%Y%m%d_%H%M')
         today = datetime.now().strftime("%Y%m%d")
-        
         folder_path = os.path.join(log_dir,today)
         os.makedirs(folder_path, exist_ok=True)
         

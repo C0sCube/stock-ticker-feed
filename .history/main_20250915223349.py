@@ -1,15 +1,15 @@
 from datetime import datetime
-import random, time, traceback
+import random, time
 
 from app.market_parser import MarketDataParser, SplitMarketDataParser
 from app.logger import setup_logger
 from app.utils import Helper
-from app.config import CONFIG, LOG_DIR
+from app.config import CONFIG
 
 config = CONFIG
 # df  = Helper.read_file(r"docs\nse.txt")
 
-logger = setup_logger(name="market_data", log_dir=LOG_DIR)
+logger = setup_logger(name="market_data", log_dir="logs")
 
 def generate_fake_entry(exchange, symbol):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -22,25 +22,13 @@ def generate_fake_entry(exchange, symbol):
     bid_qty = random.randint(1, 500)
     trades = random.randint(1, 100)
     wap = round((ask_price + bid_price) / 2, 2)
-    turnover = round(last_price * volume, 6)
 
-    if exchange == "BS":
-        entry = (
-            f"T||0||{exchange}||1||{symbol}||"
-            f"302={last_price}~300={ask_price}~301={bid_price}~304={prev_close}~"
-            f"3={trades}~5939=TRADING~100={volume}~2={bid_price}~10={timestamp}~"
-            f"6={ask_qty}~7={bid_qty}~118={wap}~18={turnover}"
-        )
-    elif exchange == "NS":
-        entry = (
-            f"T||0||{exchange}||1||{symbol}||"
-            f"4={last_price}~6={ask_qty}~5={ask_price}~7={bid_qty}~"
-            f"2={bid_price}~10={timestamp}~3={trades}~100={volume}~"
-            f"304={prev_close}~5939=TRADING~118={wap}~18={turnover}"
-        )
-    else:
-        raise ValueError(f"Unknown exchange: {exchange}")
-
+    entry = (
+        f"T||0||{exchange}||1||{symbol}||"
+        f"302={last_price}~300={ask_price}~301={bid_price}~304={prev_close}~"
+        f"3={trades}~5939=TRADING~100={volume}~2={bid_price}~10={timestamp}~"
+        f"6={ask_qty}~7={bid_qty}~118={wap}"
+    )
     return entry
 
 nse_symbols = [
@@ -54,10 +42,11 @@ bse_symbols = [
 ]
 
 
+parser = MarketDataParser(config)
 
 try:
     logger.notice("Program Has Started.")
-    # parser = MarketDataParser()
+    # parser = MarketDataParser(config)
     parser = SplitMarketDataParser(config) 
     while True:
         symbol = random.choice(nse_symbols)
@@ -66,9 +55,6 @@ try:
         parser.process_ticker(fake_entry)
         time.sleep(0.05)
 except Exception as e:
-    
-    logger.exception(f"{type(e)}:{e}")
-    logger.debug(traceback.format_exc())
-    
+    logger.error(f"{}")
 except KeyboardInterrupt:
     logger.warning("\nSimulation stopped.")

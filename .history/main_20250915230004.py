@@ -25,6 +25,7 @@ def generate_fake_entry(exchange, symbol):
     turnover = round(last_price * volume, 6)
 
     if exchange == "BS":
+        # BSE tickers use 302/300/301/304 for prices
         entry = (
             f"T||0||{exchange}||1||{symbol}||"
             f"302={last_price}~300={ask_price}~301={bid_price}~304={prev_close}~"
@@ -32,6 +33,7 @@ def generate_fake_entry(exchange, symbol):
             f"6={ask_qty}~7={bid_qty}~118={wap}~18={turnover}"
         )
     elif exchange == "NS":
+        # NSE tickers use 4/5/2/304 for prices
         entry = (
             f"T||0||{exchange}||1||{symbol}||"
             f"4={last_price}~6={ask_qty}~5={ask_price}~7={bid_qty}~"

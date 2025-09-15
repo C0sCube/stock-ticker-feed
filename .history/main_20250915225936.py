@@ -22,9 +22,11 @@ def generate_fake_entry(exchange, symbol):
     bid_qty = random.randint(1, 500)
     trades = random.randint(1, 100)
     wap = round((ask_price + bid_price) / 2, 2)
-    turnover = round(last_price * volume, 6)
 
+    "T||0||NS||1||CCLPROD.NS||4=905.00~6=66~5=906.20~7=5~2=905.00~~3=1~100=348~5620=A~302=905.00~300=905.00~301=905.00~304=902.55~5939=TRADING~118=905.00~18=314940.000000"
+    
     if exchange == "BS":
+        # BSE tickers use 302/300/301/304 for prices
         entry = (
             f"T||0||{exchange}||1||{symbol}||"
             f"302={last_price}~300={ask_price}~301={bid_price}~304={prev_close}~"
@@ -32,6 +34,7 @@ def generate_fake_entry(exchange, symbol):
             f"6={ask_qty}~7={bid_qty}~118={wap}~18={turnover}"
         )
     elif exchange == "NS":
+        # NSE tickers use 4/5/2/304 for prices
         entry = (
             f"T||0||{exchange}||1||{symbol}||"
             f"4={last_price}~6={ask_qty}~5={ask_price}~7={bid_qty}~"
@@ -40,7 +43,7 @@ def generate_fake_entry(exchange, symbol):
         )
     else:
         raise ValueError(f"Unknown exchange: {exchange}")
-
+        )
     return entry
 
 nse_symbols = [

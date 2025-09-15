@@ -89,12 +89,7 @@ def setup_logger(
     if to_file:
         # timestamp = datetime.now().strftime('%Y%m%d_%H%M')
         today = datetime.now().strftime("%Y%m%d")
-        
-        folder_path = os.path.join(log_dir,today)
-        os.makedirs(folder_path, exist_ok=True)
-        
-        file_path = os.path.join(folder_path,f"{name}.log")
-        
+        file_path = os.path.join(log_dir, f"{name}_{timestamp}.log")
         file_handler = logging.FileHandler(file_path, encoding='utf-8')
         file_handler.setFormatter(_get_formatter(use_color=False))
         file_handler.setLevel(TRACE_LEVEL_NUM)
