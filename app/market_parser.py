@@ -51,58 +51,70 @@ class MarketDataParser:
         
 
 class SplitMarketDataParser:
-    def __init__(self, config, logger, exchange="NSE"):
+    def __init__(self, config, logger, exchange="NSE",bin_size = 60, thread_id = None):
         self.ports = config["NSE_PORTS"] if exchange == "NSE" else config["BSE_PORTS"]
-        self.header = config.get("CSV_HEADER")
+        # self.header = config.get("CSV_HEADER")
         self.symbol_set = set()
         self.logger = logger
+        self.tick_bin = dict()
+        self.bin_size = bin_size
+        
+        self.thread_id = thread_id
 
     def extract_ports(self, ticker: str):
-        
-        ticker_sections = ticker.strip().split("||")
-        if len(ticker_sections) < 6:
-            return None, []
+            ticker_sections = ticker.strip().split("||")
+            if len(ticker_sections) < 6:
+                return None, []
 
-        symbol,field_values = ticker_sections[4],ticker_sections[-1]
+            symbol, field_values = ticker_sections[4], ticker_sections[-1]
 
-        kv_pairs = [kv.split("=", 1) for kv in field_values.split("~") if "=" in kv]
-        field_map = {k: v for k, v in kv_pairs}
+            kv_pairs = [kv.split("=", 1) for kv in field_values.split("~") if "=" in kv]
+            field_map = {k: v for k, v in kv_pairs}
 
-        # port-data to extract
-        data_set = []
-        for port_name, port_val in self.ports.items():
-            if port_name == "DATETIME":
-                value = field_map.get(port_val, "N/A")
-                if value != "N/A" and " " in value:
-                    date, time_ = value.split(" ", 1)
-                    value = f"{date},{time_}"
+            data_set = []
+            for port_name, port_val in self.ports.items():
+                if port_name == "DATETIME":
+                    value = field_map.get(port_val, "")
+                    if value and " " in value:
+                        date, time_ = value.split(" ", 1)
+                        value = f"{date},{time_}"
+                    else:
+                        value = "," #date,time
                 else:
-                    value = "N/A,N/A"
-            else:
-                value = field_map.get(port_val, "N/A")
-            data_set.append(value)
+                    value = field_map.get(port_val, "")
+                data_set.append(value)
 
-        return symbol, data_set
+            return symbol, data_set
 
     def process_ticker(self, ticker: str):
-        symbol, data = self.extract_ports(ticker)
-        if not symbol or not data:
-            return
+            symbol, data = self.extract_ports(ticker)
+            if not symbol or not data:
+                return
+
+            data_row = ",".join(data)
+            save_data = f"{symbol},{data_row}\n"
+
+            if symbol not in self.tick_bin:
+                self.tick_bin[symbol] = []
+
+            self.tick_bin[symbol].append(save_data)
+
+            if len(self.tick_bin[symbol]) >= self.bin_size:
+                self.flush_tick_data(symbol)
+
+    def flush_tick_data(self, symbol):
         
-        # symbol_mapped = self.map_symbol_data()
-        self.symbol_set.add(symbol)
+        filename =f"{symbol}-worker{self.thread_id}.csv" if self.thread_id else f"{symbol}.csv"
+        path = os.path.join(OUTPUT_DIR,filename)
+        flush_data = self.tick_bin.get(symbol, [])
+        if flush_data:
+            with open(path, mode="a", encoding="utf-8") as f:
+                f.writelines(flush_data)
+            self.tick_bin[symbol].clear()
 
-        data_row = ",".join(data)
-        symbol_path = os.path.join(OUTPUT_DIR, f"{symbol}.csv")
-
-        if not os.path.exists(symbol_path):
-            self.logger.info(f"New Symbol Detected: {symbol}")
-            Helper.write_file(symbol_path, self.header, mode="a")
-
-        save_data = f"{symbol},{data_row}\n"
-        Helper.write_file(symbol_path,save_data, mode="a")
-        
-        self.logger.save(f"Tick::{symbol}:{data_row}")
+    def flush_all_data(self):
+        for symbol in list(self.tick_bin.keys()):
+            self.flush_tick_data(symbol)
         
     def map_symbol_data(self,):
         pass

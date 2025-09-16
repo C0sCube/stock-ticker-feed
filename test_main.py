@@ -1,53 +1,82 @@
+import random
+import time
+import traceback
 from datetime import datetime
-import random, time, traceback, os, logging
 
-from app.market_parser import MarketDataParser, SplitMarketDataParser
+from app.market_parser import SplitMarketDataParser
 from app.logger import setup_logger
-from app.utils import Helper
 from app.constants import CONFIG, LOG_DIR
 
-config = CONFIG
 
-logger = setup_logger(name="market_data", log_dir=LOG_DIR)
-error_logger = setup_logger(name="error_log", log_dir=LOG_DIR, log_level=logging.ERROR, to_console=False)
+# --- Fake data generator ---
+def generate_fake_entry(exchange, symbol):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    last_price = round(random.uniform(100, 1500), 2)
+    ask_price = round(last_price + random.uniform(0.1, 5), 2)
+    bid_price = round(last_price - random.uniform(0.1, 5), 2)
+    prev_close = round(last_price - random.uniform(1, 10), 2)
+    volume = random.randint(100, 100000)
+    ask_qty = random.randint(1, 500)
+    bid_qty = random.randint(1, 500)
+    trades = random.randint(1, 100)
+    wap = round((ask_price + bid_price) / 2, 2)
+    turnover = round(last_price * volume, 6)
 
-folder_path = r"C:\Users\kaustubh.keny\Downloads\16-09-2025"
+    if exchange == "BS":
+        return (
+            f"T||0||{exchange}||1||{symbol}||"
+            f"302={last_price}~300={ask_price}~301={bid_price}~304={prev_close}~"
+            f"3={trades}~5939=TRADING~100={volume}~2={bid_price}~10={timestamp}~"
+            f"6={ask_qty}~7={bid_qty}~118={wap}~18={turnover}"
+        )
+    elif exchange == "NS":
+        return (
+            f"T||0||{exchange}||1||{symbol}||"
+            f"4={last_price}~6={ask_qty}~5={ask_price}~7={bid_qty}~"
+            f"2={bid_price}~10={timestamp}~3={trades}~100={volume}~"
+            f"304={prev_close}~5939=TRADING~118={wap}~18={turnover}"
+        )
+    else:
+        raise ValueError(f"Unknown exchange: {exchange}")
 
-def sorted_rate_files(folder_path):
-    files = os.listdir(folder_path)
-    rate_files = [f for f in files if f.startswith("RealTime_")]
-    rate_files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
-    return rate_files
 
-data_files = sorted_rate_files(folder_path)
+# --- Demo symbols ---
+NSE_SYMBOLS = [
+    "SYMBIOX$.NS", "CCLPROD.NS", "MARKPHAR.NS", "SIGMSOLV.NS", "OMAXAUTO.BEN.NS",
+    "ATISHAY$.NS", "MORATEXT.BZN.NS", "SILKPOLY.SMN.NS", "INFY.NS", "RELIANCE.NS"
+]
 
-try:
-    logger.notice("Program Has Started.")
-    parser = SplitMarketDataParser(config, logger, exchange="NSE")
+BSE_SYMBOLS = [
+    "BRAISOLU.BS", "INDRMEDI.BS", "WHIRINDI.BS", "ASTEDM.BS", "CESC.BS",
+    "TCS.BS", "HDFCBANK.BS", "MARUTI.BS", "ITC.BS", "SBIN.BS"
+]
 
-    for file_name in data_files:
-        try:
-            file_path = os.path.join(folder_path, file_name)
-            logger.info(f"Processing file: {file_name}")
-            file_content = Helper.read_file(file_path)
 
-            lines = file_content.splitlines()
-            for line in lines:
-                try:
-                    parser.process_ticker(line)
-                except Exception as e:
-                    error_logger.error(f"Error processing ticker in file {file_name}: {type(e)}:{e}")
-                    error_logger.debug(traceback.format_exc())
+# --- Main simulation loop ---
+def main():
+    logger = setup_logger(name="market_data", log_dir=LOG_DIR)
+    logger.notice("Program Started (Fake Tick Simulator)")
 
-            logger.info(f"Completed processing file: {file_name}")
+    parser = SplitMarketDataParser(CONFIG, logger, exchange="NSE")
 
-        except Exception as e:
-            error_logger.error(f"Error processing file {file_name}: {type(e)}:{e}")
-            error_logger.debug(traceback.format_exc())
+    try:
+        while True:
+            symbol = random.choice(NSE_SYMBOLS)
+            fake_entry = generate_fake_entry("NS", symbol)
 
-    logger.notice("Program Has Ended.")
-except Exception as e:
-    error_logger.exception(f"{type(e)}:{e}")
-    error_logger.debug(traceback.format_exc())
-except KeyboardInterrupt:
-    logger.warning("\nSimulation stopped.")
+            parser.process_ticker(fake_entry)
+            time.sleep(0.02)  # 50 ticks/sec
+
+    except KeyboardInterrupt:
+        logger.warning("Simulation stopped by user")
+
+    except Exception as e:
+        logger.exception(f"Unhandled error: {type(e).__name__}: {e}")
+
+    finally:
+        parser.flush_all_data()
+        logger.notice("Program Ended, buffered data flushed.")
+
+
+if __name__ == "__main__":
+    main()

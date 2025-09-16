@@ -2,10 +2,11 @@ import os
 from datetime import datetime
 from app.utils import Helper
 
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-
-CONFIG_PATH = os.path.join(BASE_DIR, "config", "params.json5")
-CONFIG = Helper.load_json5(CONFIG_PATH)
+root_dir = os.path.dirname(os.path.dirname(__file__))
+conf_path = os.path.join(root_dir, "config", "params.json5")
+json_path = os.path.join(root_dir,"paths.json5")
+CONFIG = Helper.load_json5(conf_path)
+PATHS = Helper.load_json5(json_path)
 
 
 TODAY = datetime.now().strftime("%Y%m%d")
@@ -14,11 +15,8 @@ today = datetime.today()
 year = today.strftime("%Y")
 month = today.strftime("%B").upper()
 day_str = today.strftime("%d%m%Y")
-path = os.path.join(BASE_DIR, "NSE", year, "TICK", f"{month}_{year}", f"GFDLCM_STOCK_TICK_{day_str}")
 
 
-
-output_dir = r"C:\Users\kaustubh.keny\Projects\OUTPUTS\ticker-output"
-
-LOG_DIR = Helper.create_dir(output_dir,TODAY,"logs")
-OUTPUT_DIR = Helper.create_dir(output_dir,TODAY,"data")
+INPUT_PATH = PATHS["input_path"]
+LOG_DIR = Helper.create_dir(PATHS["output_path"],"logs",TODAY)
+OUTPUT_DIR = Helper.create_dir(PATHS["output_path"],"data",TODAY)
