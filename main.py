@@ -4,7 +4,7 @@ import random, time, traceback
 from app.market_parser import MarketDataParser, SplitMarketDataParser
 from app.logger import setup_logger
 from app.utils import Helper
-from app.config import CONFIG, LOG_DIR
+from app.constants import CONFIG, LOG_DIR
 
 config = CONFIG
 # df  = Helper.read_file(r"docs\nse.txt")
@@ -58,11 +58,11 @@ bse_symbols = [
 try:
     logger.notice("Program Has Started.")
     # parser = MarketDataParser()
-    parser = SplitMarketDataParser(config) 
+    parser = SplitMarketDataParser(config, logger) 
     while True:
         symbol = random.choice(nse_symbols)
         fake_entry = generate_fake_entry("NS", symbol)
-        logger.trace(fake_entry)
+        # logger.trace(fake_entry)
         parser.process_ticker(fake_entry)
         time.sleep(0.05)
 except Exception as e:

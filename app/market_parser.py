@@ -1,6 +1,6 @@
 import os, re
 from app.utils import Helper
-from app.config import CONFIG, OUTPUT_DIR
+from app.constants import CONFIG, OUTPUT_DIR
 
 class MarketDataParser:
     def __init__(self):
@@ -51,21 +51,21 @@ class MarketDataParser:
         
 
 class SplitMarketDataParser:
-    def __init__(self, config):
-        self.ports = config["NSE_PORTS"]
+    def __init__(self, config, logger, exchange="NSE"):
+        self.ports = config["NSE_PORTS"] if exchange == "NSE" else config["BSE_PORTS"]
         self.header = config.get("CSV_HEADER")
         self.symbol_set = set()
+        self.logger = logger
 
     def extract_ports(self, ticker: str):
         
-        parts = ticker.strip().split("||")
-        if len(parts) < 6:
+        ticker_sections = ticker.strip().split("||")
+        if len(ticker_sections) < 6:
             return None, []
 
-        symbol = parts[4]
-        kv_string = parts[-1]
+        symbol,field_values = ticker_sections[4],ticker_sections[-1]
 
-        kv_pairs = [kv.split("=", 1) for kv in kv_string.split("~") if "=" in kv]
+        kv_pairs = [kv.split("=", 1) for kv in field_values.split("~") if "=" in kv]
         field_map = {k: v for k, v in kv_pairs}
 
         # port-data to extract
@@ -88,13 +88,23 @@ class SplitMarketDataParser:
         symbol, data = self.extract_ports(ticker)
         if not symbol or not data:
             return
+        
+        # symbol_mapped = self.map_symbol_data()
+        self.symbol_set.add(symbol)
 
-        row = ",".join(data) + "\n"
+        data_row = ",".join(data)
         symbol_path = os.path.join(OUTPUT_DIR, f"{symbol}.csv")
 
         if not os.path.exists(symbol_path):
+            self.logger.info(f"New Symbol Detected: {symbol}")
             Helper.write_file(symbol_path, self.header, mode="a")
 
-        Helper.write_file(symbol_path, row, "a")
+        save_data = f"{symbol},{data_row}\n"
+        Helper.write_file(symbol_path,save_data, mode="a")
+        
+        self.logger.save(f"Tick::{symbol}:{data_row}")
+        
+    def map_symbol_data(self,):
+        pass
 
 
