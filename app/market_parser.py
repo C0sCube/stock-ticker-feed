@@ -51,7 +51,7 @@ class MarketDataParser:
         
 
 class SplitMarketDataParser:
-    def __init__(self, config, logger, exchange="NSE",bin_size = 60, thread_id = None):
+    def __init__(self, config, logger, exchange="NSE",bin_size = 30, thread_id = None):
         self.ports = config["NSE_PORTS"] if exchange == "NSE" else config["BSE_PORTS"]
         # self.header = config.get("CSV_HEADER")
         self.symbol_set = set()
@@ -84,7 +84,7 @@ class SplitMarketDataParser:
                     value = field_map.get(port_val, "")
                 data_set.append(value)
 
-            return symbol, data_set
+            return symbol.strip(), data_set
 
     def process_ticker(self, ticker: str):
             symbol, data = self.extract_ports(ticker)
@@ -93,14 +93,16 @@ class SplitMarketDataParser:
 
             data_row = ",".join(data)
             save_data = f"{symbol},{data_row}\n"
+            
+            if symbol in ["RELINDUS.NS","TATASTEE.NS","AXISBANK.NS","INFO.NS","HDFCBANK.NS"]:
+                if symbol not in self.tick_bin:
+                    self.tick_bin[symbol] = []
 
-            if symbol not in self.tick_bin:
-                self.tick_bin[symbol] = []
+                self.tick_bin[symbol].append(save_data)
+                self.logger.trace(f"Appended data for {symbol}: {save_data}")
 
-            self.tick_bin[symbol].append(save_data)
-
-            if len(self.tick_bin[symbol]) >= self.bin_size:
-                self.flush_tick_data(symbol)
+                if len(self.tick_bin[symbol]) >= self.bin_size:
+                    self.flush_tick_data(symbol)
 
     def flush_tick_data(self, symbol):
         

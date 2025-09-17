@@ -1,24 +1,24 @@
 from datetime import datetime
-import os, traceback, logging
+import os, traceback, logging, time
 from app.market_parser import SplitMarketDataParser
 from app.logger import setup_logger
 from app.utils import Helper
-from app.constants import CONFIG, LOG_DIR
+from app.constants import CONFIG, LOG_DIR, INPUT_PATH
 
 config = CONFIG
-
+folder_path = INPUT_PATH
 logger = setup_logger(name="market_data", log_dir=LOG_DIR)
 
-folder_path = r"C:\Users\kaustubh.keny\Downloads\16-09-2025"
 
-def sorted_rate_files(folder_path):
-    files = os.listdir(folder_path)
+def sorted_rate_files(path):
+    files = os.listdir(path)
     rate_files = [f for f in files if f.startswith("RealTime_")]
     rate_files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
     return rate_files
 
 def run():
-    logger.notice("Program Has Started.")
+    logger.notice(f"Program Has Started. {datetime.now()}")
+    time.sleep(5)
     parser = SplitMarketDataParser(config, logger, exchange="NSE")
 
     data_files = sorted_rate_files(folder_path)
@@ -33,7 +33,7 @@ def run():
                     parser.process_ticker(line)
                 except Exception as e:
                     logger.error(f"Ticker error in {file_name}: {type(e).__name__}: {e}")
-                    # logger.debug(traceback.format_exc())
+                    logger.debug(traceback.format_exc())
 
             logger.info(f"Completed processing file: {file_name}")
 
@@ -44,7 +44,7 @@ def run():
     # flush any leftover tick bins
     parser.flush_all_data()
 
-    logger.notice("Program Has Ended.")
+    logger.notice(f"Program Has Ended. {datetime.now()}")
 
 if __name__ == "__main__":
     try:
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.warning("Simulation stopped by user")
     except Exception as e:
-        logger.exception(f"Fatal error: {type(e).__name__}: {e}")
+        logger.critical(f"Fatal error: {type(e).__name__}: {e}")
 
 
 # import os, traceback
