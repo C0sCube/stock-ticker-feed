@@ -1,14 +1,14 @@
 from datetime import datetime
 import os, traceback, logging, time
 from app.market_parser import SplitMarketDataParser
-from app.logger import setup_logger
+from app.logger import setup_logger, set_logger
 from app.utils import Helper
 from app.constants import CONFIG, LOG_DIR, INPUT_PATH
 
 config = CONFIG
 folder_path = INPUT_PATH
-logger = setup_logger(name="market_data", log_dir=LOG_DIR)
-
+logger = setup_logger(name="market_data", log_dir=LOG_DIR, console_level=15)
+set_logger(logger) #made global not used tho !! passed as a parameter to the class
 
 def sorted_rate_files(path):
     files = os.listdir(path)
@@ -16,29 +16,37 @@ def sorted_rate_files(path):
     rate_files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
     return rate_files
 
+def zip_files(path):
+    pass
+
 def run():
     logger.notice(f"Program Has Started. {datetime.now()}")
     time.sleep(5)
     parser = SplitMarketDataParser(config, logger, exchange="NSE")
 
     data_files = sorted_rate_files(folder_path)
+    
+    src_total_tick_count = 0
+    
     for file_name in data_files:
         file_path = os.path.join(folder_path, file_name)
         logger.info(f"Processing file: {file_name}")
 
+        src_file_tick_count = 0
         try:
             lines = Helper.read_file(file_path).splitlines()
+            src_file_tick_count = len(lines)
             for line in lines:
                 try:
                     parser.process_ticker(line)
                 except Exception as e:
                     logger.error(f"Ticker error in {file_name}: {type(e).__name__}: {e}")
                     logger.debug(traceback.format_exc())
-
-            logger.info(f"Completed processing file: {file_name}")
+            src_total_tick_count+=src_file_tick_count
+            logger.info(f"Completed processing file: {file_name} File Ticks:{src_file_tick_count}\tTotal Ticks so Far:{src_total_tick_count}")
 
         except Exception as e:
-            logger.error(f"File error {file_name}: {type(e).__name__}: {e}")
+            logger.error(f"Function: run -> File error {file_name}: {type(e).__name__}: {e}")
             logger.debug(traceback.format_exc())
 
     # flush any leftover tick bins
@@ -50,9 +58,9 @@ if __name__ == "__main__":
     try:
         run()
     except KeyboardInterrupt:
-        logger.warning("Simulation stopped by user")
+        logger.warning("File: main.py -> Simulation stopped by user")
     except Exception as e:
-        logger.critical(f"Fatal error: {type(e).__name__}: {e}")
+        logger.critical(f"File: main.py -> Fatal error: {type(e).__name__}: {e}")
 
 
 # import os, traceback

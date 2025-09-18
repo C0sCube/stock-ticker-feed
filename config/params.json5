@@ -2,9 +2,9 @@
     NSE_PORTS: {
         DATETIME: "10",
         LTP: "2",
-        BUY_PRICE: "4",
+        BUY_PRICE: "4", //bid
         BUY_QTY: "6",
-        SELL_PRICE: "5",
+        SELL_PRICE: "5", //ask
         SELL_QTY: "7",
         LTQ: "3",
     },
@@ -24,5 +24,5 @@
         LTQ: "3",
     },
     BSE_REGEX: {},
-    CSV_HEADER: "Ticker,Date,Time,LTP,BuyPrice,BuyQty,SellPrice,SellQty,LTQ\n",
+    CSV_HEADER: "Ticker,Date,Time,Ltp,BuyPrice,BuyQty,SellPrice,SellQty,Ltq",
 }

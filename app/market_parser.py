@@ -1,90 +1,47 @@
 import os, re
 from app.utils import Helper
-from app.constants import CONFIG, OUTPUT_DIR
-
-class MarketDataParser:
-    def __init__(self):
-        self.ports = CONFIG["NSE_PORTS"]
-        self.header = CONFIG.get("CSV_HEADER")
-        self.symbol_set = set()
-
-    def extract_symbol(self, ticker):
-        regex = CONFIG["NSE_REGEX"]["SYMBOL_REGEX"]
-        match = re.findall(regex, ticker, re.IGNORECASE)
-        if match:
-            symbol = match[0]
-            self.symbol_set.add(symbol)
-            return symbol
-        return None
-
-    def extract_ports(self, ticker):
-        data_set = []
-        for port_name, port_val in self.ports.items():
-            if port_name == "DATETIME":
-                regex = fr"\b{port_val}=(\d{{4}}-\d{{2}}-\d{{2}})\s(\d{{2}}:\d{{2}}:\d{{2}})~"
-            else:
-                regex = fr"\b{port_val}=(\d+\.?\d*)~"
-
-            match = re.findall(regex, ticker, re.IGNORECASE)
-            if match:
-                value = match[0]
-                value = ",".join(value) if isinstance(value, tuple) else value
-            else:
-                value = "N/A,N/A" if port_name == "DATETIME" else "N/A"
-            data_set.append(value)
-
-        return data_set
-
-    def process_ticker(self, ticker):
-        symbol = self.extract_symbol(ticker)
-        if not symbol:
-            return
-
-        data = self.extract_ports(ticker)
-        data_csv = ",".join(data) + "\n"
-
-        symbol_path = os.path.join(OUTPUT_DIR, f"{symbol}.csv")
-        if not os.path.exists(symbol_path):
-            Helper.write_file(symbol_path, self.header, mode="a")
-        Helper.write_file(symbol_path, data_csv, "a")
+from app.constants import CONFIG, OUTPUT_DIR, BIN_SIZE
         
-        
-
 class SplitMarketDataParser:
     def __init__(self, config, logger, exchange="NSE",bin_size = 30, thread_id = None):
         self.ports = config["NSE_PORTS"] if exchange == "NSE" else config["BSE_PORTS"]
-        # self.header = config.get("CSV_HEADER")
-        self.symbol_set = set()
+        self.header = config.get("CSV_HEADER")
+        # self.symbol_set = set()
         self.logger = logger
         self.tick_bin = dict()
         self.bin_size = bin_size
         
-        self.thread_id = thread_id
+        # self.thread_id = thread_id
+        
+        # self.tick_content_size = 6
+        # self.symbol_index = 4
+        # self.fill_null = "Nil"
 
     def extract_ports(self, ticker: str):
-            ticker_sections = ticker.strip().split("||")
-            if len(ticker_sections) < 6:
-                return None, []
+        ticker_sections = ticker.strip().split("||")
+        if len(ticker_sections) < 6: # self.tick_content_size = 6
+            self.logger.debug(f"Function: SplitMarketDataParser.export_ports -> Malformed tick skipped: {ticker}")
+            return None, []
 
-            symbol, field_values = ticker_sections[4], ticker_sections[-1]
+        symbol, field_values = ticker_sections[4], ticker_sections[-1] # self.symbol_index = 4
 
-            kv_pairs = [kv.split("=", 1) for kv in field_values.split("~") if "=" in kv]
-            field_map = {k: v for k, v in kv_pairs}
+        kv_pairs = [kv.split("=", 1) for kv in field_values.split("~") if "=" in kv]
+        field_map = {k: v.strip() for k, v in kv_pairs}
 
-            data_set = []
-            for port_name, port_val in self.ports.items():
-                if port_name == "DATETIME":
-                    value = field_map.get(port_val, "")
-                    if value and " " in value:
-                        date, time_ = value.split(" ", 1)
-                        value = f"{date},{time_}"
-                    else:
-                        value = "," #date,time
+        data_set = []
+        for port_name, port_val in self.ports.items():
+            if port_name == "DATETIME":
+                value = field_map.get(port_val, "")
+                if value and " " in value:
+                    date, time_ = value.split(" ", 1)
+                    value = f"{date},{time_}"
                 else:
-                    value = field_map.get(port_val, "")
-                data_set.append(value)
+                    value = "Nil,Nil"  # date,time fallback
+            else:
+                value = field_map.get(port_val, "Nil") or "Nil"
+            data_set.append(value)
 
-            return symbol.strip(), data_set
+        return symbol.strip(), data_set
 
     def process_ticker(self, ticker: str):
             symbol, data = self.extract_ports(ticker)
@@ -93,16 +50,25 @@ class SplitMarketDataParser:
 
             data_row = ",".join(data)
             save_data = f"{symbol},{data_row}\n"
+            if symbol not in self.tick_bin:
+                self.tick_bin[symbol] = [self.header + "\n"] #header added
+
+            self.tick_bin[symbol].append(save_data)
+            # self.logger.trace(f"Added data for {symbol}: {save_data}")
+
+            if len(self.tick_bin[symbol]) >= self.bin_size:
+                self.flush_tick_data(symbol)
             
-            if symbol in ["RELINDUS.NS","TATASTEE.NS","AXISBANK.NS","INFO.NS","HDFCBANK.NS"]:
-                if symbol not in self.tick_bin:
-                    self.tick_bin[symbol] = []
+            
+            # if symbol in ["RELINDUS.NS","TATASTEE.NS","AXISBANK.NS","INFO.NS","HDFCBANK.NS"]:
+            #     if symbol not in self.tick_bin:
+            #         self.tick_bin[symbol] = []
 
-                self.tick_bin[symbol].append(save_data)
-                self.logger.trace(f"Appended data for {symbol}: {save_data}")
+            #     self.tick_bin[symbol].append(save_data)
+            #     self.logger.trace(f"Appended data for {symbol}: {save_data}")
 
-                if len(self.tick_bin[symbol]) >= self.bin_size:
-                    self.flush_tick_data(symbol)
+            #     if len(self.tick_bin[symbol]) >= self.bin_size:
+            #         self.flush_tick_data(symbol)
 
     def flush_tick_data(self, symbol):
         
@@ -122,3 +88,49 @@ class SplitMarketDataParser:
         pass
 
 
+# class MarketDataParser:
+#     def __init__(self):
+#         self.ports = CONFIG["NSE_PORTS"]
+#         self.header = CONFIG.get("CSV_HEADER")
+#         self.symbol_set = set()
+
+#     def extract_symbol(self, ticker):
+#         regex = CONFIG["NSE_REGEX"]["SYMBOL_REGEX"]
+#         match = re.findall(regex, ticker, re.IGNORECASE)
+#         if match:
+#             symbol = match[0]
+#             self.symbol_set.add(symbol)
+#             return symbol
+#         return None
+
+#     def extract_ports(self, ticker):
+#         data_set = []
+#         for port_name, port_val in self.ports.items():
+#             if port_name == "DATETIME":
+#                 regex = fr"\b{port_val}=(\d{{4}}-\d{{2}}-\d{{2}})\s(\d{{2}}:\d{{2}}:\d{{2}})~"
+#             else:
+#                 regex = fr"\b{port_val}=(\d+\.?\d*)~"
+
+#             match = re.findall(regex, ticker, re.IGNORECASE)
+#             if match:
+#                 value = match[0]
+#                 value = ",".join(value) if isinstance(value, tuple) else value
+#             else:
+#                 value = "N/A,N/A" if port_name == "DATETIME" else "N/A"
+#             data_set.append(value)
+
+#         return data_set
+
+#     def process_ticker(self, ticker):
+#         symbol = self.extract_symbol(ticker)
+#         if not symbol:
+#             return
+
+#         data = self.extract_ports(ticker)
+#         data_csv = ",".join(data) + "\n"
+
+#         symbol_path = os.path.join(OUTPUT_DIR, f"{symbol}.csv")
+#         if not os.path.exists(symbol_path):
+#             Helper.write_file(symbol_path, self.header, mode="a")
+#         Helper.write_file(symbol_path, data_csv, "a")
+        

@@ -20,3 +20,8 @@ day_str = today.strftime("%d%m%Y")
 INPUT_PATH = PATHS["input_path"]
 LOG_DIR = Helper.create_dir(PATHS["output_path"],"logs")
 OUTPUT_DIR = Helper.create_dir(PATHS["output_path"],"data",TODAY)
+
+
+#Bin size to bin data
+BIN_SIZE = 30
+FILL_NA = "Nil"
