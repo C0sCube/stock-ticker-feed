@@ -1,4 +1,5 @@
 import os, re, traceback
+from datetime import datetime
 from app.logger import get_logger
 from app.sql_connector import fetch_symbol_mapping
 from app.constants import CONFIG, OUTPUT_DIR
@@ -12,6 +13,9 @@ class SplitMarketDataParser:
         bin_size = 30,
         add_extension = True,
     ):
+        
+        self.exchange = exchange
+        
         self.ports = CONFIG["NSE_PORTS"] if exchange == "NSE" else CONFIG["BSE_PORTS"]
         self.header = CONFIG.get("CSV_HEADER","Ticker,Date,Time,Ltp,BuyPrice,BuyQty,SellPrice,SellQty,Ltq,OpenInterest")
         self.header_count = len(self.header.split(","))
@@ -48,34 +52,71 @@ class SplitMarketDataParser:
         except Exception as e:
             self.logger.exception(f"Unexpected error in SplitMarketDataParser.__init__: {e}")
             self.symbol_mapper = {}
+            
+            
+    # def extract_nfo_ports(self,ticker:str):
+    #     other,ticker_sections = ticker.strip().split(";",1)
+        
+    #     _time,symbol = other.split("CPR")
+        
+    #     date = datetime.now().strftime("%y-%m-%d")
+        
+    #     kv_pairs = [kv.split("=",1) for kv in ticker_sections.split(";") if ";" in kv]
+    #     field_map = {k: v.strip() for k, v in kv_pairs}
+        
+    #     data_set = [date,_time.strip()]
+    #     for port_name,port_val in self.ports.items():
+    #         value = field_map.get(port_val, "0") or "0"
+    #         data_set.append(value)
+        
+    #     if all(i == "0" for i in data_set):
+    #         self.logger.debug(f"Function: SplitMarketDataParser.export_ports -> Empty tick skipped: {ticker}")
+    #         return None,[]
+        
+    #     return symbol.strip(), data_set
+            
         
     def extract_ports(self, ticker: str):
-        ticker_sections = ticker.strip().split("||")
-        if len(ticker_sections) < self.tick_content_size: # self.tick_content_size = 6
-            self.logger.debug(f"Function: SplitMarketDataParser.export_ports -> Malformed tick skipped: {ticker}")
-            return None, []
+       
+        if self.exchange == "NSE":
+            ticker_sections = ticker.strip().split("||")
+            if len(ticker_sections) < self.tick_content_size: # self.tick_content_size = 6
+                self.logger.debug(f"Function: SplitMarketDataParser.export_ports -> Malformed tick skipped: {ticker}")
+                return None, []
 
-        symbol, field_values = ticker_sections[self.symbol_index], ticker_sections[-1] # self.symbol_index = 4
+            symbol, field_values = ticker_sections[self.symbol_index], ticker_sections[-1] # self.symbol_index = 4
+            kv_pairs = [kv.split("=", 1) for kv in field_values.split("~") if "=" in kv]
+            field_map = {k: v.strip() for k, v in kv_pairs}
 
-        kv_pairs = [kv.split("=", 1) for kv in field_values.split("~") if "=" in kv]
-        field_map = {k: v.strip() for k, v in kv_pairs}
-
-        data_set = []
-        for port_name, port_val in self.ports.items():
-            if port_name == "DATETIME":
-                value = field_map.get(port_val, "")
-                if value and " " in value:
-                    date, time_ = value.split(" ", 1)
-                    # value = f"{date},{time_}"
+            data_set = []
+            for port_name, port_val in self.ports.items():
+                if port_name == "DATETIME":
+                    value = field_map.get(port_val, "")
+                    if value and " " in value:
+                        date, time_ = value.split(" ", 1)
+                        # value = f"{date},{time_}"
+                        
+                    else:
+                        date,time_ = "0","0" #value = "0,0"  # date,time fallback
                     
+                    data_set.extend([date,time_])
                 else:
-                    date,time_ = "0","0" #value = "0,0"  # date,time fallback
-                
-                data_set.extend([date,time_])
-            else:
+                    value = field_map.get(port_val, "0") or "0"
+                    # value = float(value)
+                    data_set.append(value)
+        
+        if self.exchange == "NFO":
+            other,ticker_sections = ticker.strip().split(";",1)
+            _time,symbol = other.split("CPR") 
+            date = datetime.now().strftime("%y-%m-%d")
+            
+            kv_pairs = [kv.split("=",1) for kv in ticker_sections.split(";") if ";" in kv]
+            field_map = {k: v.strip() for k, v in kv_pairs}
+            
+            data_set = [date,_time.strip()]
+            for port_name,port_val in self.ports.items():
                 value = field_map.get(port_val, "0") or "0"
-                # value = float(value)
-                data_set.append(value)
+                data_set.append(value)  
         
         
         #Check if the tick is completely empty or not
