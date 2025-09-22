@@ -1,4 +1,4 @@
-import os, re, json, string, random, json5
+import os, re, json, string, random
 from datetime import datetime
 import unicodedata
 
@@ -72,15 +72,15 @@ class Helper:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     
-    @staticmethod
-    def save_json5(data: dict, path: str, indent: int = 2):
-        with open(path, "w", encoding="utf-8") as f:
-            json5.dump(data, f, indent=indent)
+    # @staticmethod
+    # def save_json5(data: dict, path: str, indent: int = 2):
+    #     with open(path, "w", encoding="utf-8") as f:
+    #         json5.dump(data, f, indent=indent)
 
-    @staticmethod
-    def load_json5(path: str):
-        with open(path, "r", encoding="utf-8") as f:
-            return json5.load(f)
+    # @staticmethod
+    # def load_json5(path: str):
+    #     with open(path, "r", encoding="utf-8") as f:
+    #         return json5.load(f)
 
     @staticmethod
     def save_text(data, path: str, mode='w'):

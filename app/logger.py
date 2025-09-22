@@ -3,11 +3,11 @@ import os
 import sys
 from datetime import datetime
 
-try:
-    import colorlog
-    COLORLOG_AVAILABLE = True
-except ImportError:
-    COLORLOG_AVAILABLE = False
+# try:
+#     import colorlog
+#     COLORLOG_AVAILABLE = True
+# except ImportError:
+#     COLORLOG_AVAILABLE = False
 
 
 TRACE_LEVEL_NUM = 15
@@ -17,7 +17,7 @@ MAX_LOG_SIZE = 1024 * 1024  # 1MB
 DEFAULT_FORMAT = "%(asctime)s [%(levelname)s]: %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-LOG_COLORS = {"TRACE": "white","SAVE": "blue","NOTICE": "bold_cyan","DEBUG": "cyan","INFO": "green","WARNING": "yellow","ERROR": "red","CRITICAL": "bold_red",}
+# LOG_COLORS = {"TRACE": "white","SAVE": "blue","NOTICE": "bold_cyan","DEBUG": "cyan","INFO": "green","WARNING": "yellow","ERROR": "red","CRITICAL": "bold_red",}
 
 def _get_log_file(log_dir, base_name):
     today = datetime.now().strftime("%Y%m%d")
@@ -77,18 +77,17 @@ def setup_logger(name="daily_log",log_dir="logs",log_level=10,to_console=True,us
 
     # --- Console handler (with color if available) ---
     if to_console:
-        if use_color and COLORLOG_AVAILABLE:
-            console_handler = colorlog.StreamHandler(sys.stdout)
-            console_formatter = colorlog.ColoredFormatter(
-                "%(log_color)s" + DEFAULT_FORMAT,
-                datefmt=DATE_FORMAT,
-                log_colors=LOG_COLORS,
-            )
-            console_handler.setFormatter(console_formatter)
-        else:
-            console_handler = logging.StreamHandler(sys.stdout)
-            console_handler.setFormatter(logging.Formatter(DEFAULT_FORMAT, DATE_FORMAT))
-
+        # if use_color and COLORLOG_AVAILABLE:
+        #     console_handler = colorlog.StreamHandler(sys.stdout)
+        #     console_formatter = colorlog.ColoredFormatter(
+        #         "%(log_color)s" + DEFAULT_FORMAT,
+        #         datefmt=DATE_FORMAT,
+        #         log_colors=LOG_COLORS,
+        #     )
+        #     console_handler.setFormatter(console_formatter)
+        # else:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(logging.Formatter(DEFAULT_FORMAT, DATE_FORMAT))
         console_handler.setLevel(console_level)
         logger.addHandler(console_handler)
 
@@ -105,25 +104,25 @@ def get_logger():
     return _active_logger or logging.getLogger("default_logger")
 
 
-logging.addLevelName(TRACE_LEVEL_NUM, "TRACE")
-logging.addLevelName(SAVE_LEVEL_NUM, "SAVE")
-logging.addLevelName(NOTICE_LEVEL_NUM, "NOTICE")
+# logging.addLevelName(TRACE_LEVEL_NUM, "TRACE")
+# logging.addLevelName(SAVE_LEVEL_NUM, "SAVE")
+# logging.addLevelName(NOTICE_LEVEL_NUM, "NOTICE")
 
 
-def trace(self, message, *args, **kwargs):
-    if self.isEnabledFor(TRACE_LEVEL_NUM):
-        self._log(TRACE_LEVEL_NUM, message, args, **kwargs)
+# def trace(self, message, *args, **kwargs):
+#     if self.isEnabledFor(TRACE_LEVEL_NUM):
+#         self._log(TRACE_LEVEL_NUM, message, args, **kwargs)
 
-def save(self, message, *args, **kwargs):
-    if self.isEnabledFor(SAVE_LEVEL_NUM):
-        self._log(SAVE_LEVEL_NUM, message, args, **kwargs)
+# def save(self, message, *args, **kwargs):
+#     if self.isEnabledFor(SAVE_LEVEL_NUM):
+#         self._log(SAVE_LEVEL_NUM, message, args, **kwargs)
 
-def notice(self, message, *args, **kwargs):
-    if self.isEnabledFor(NOTICE_LEVEL_NUM):
-        self._log(NOTICE_LEVEL_NUM, message, args, **kwargs)
+# def notice(self, message, *args, **kwargs):
+#     if self.isEnabledFor(NOTICE_LEVEL_NUM):
+#         self._log(NOTICE_LEVEL_NUM, message, args, **kwargs)
 
 
-#set property
-logging.Logger.trace = trace
-logging.Logger.save = save
-logging.Logger.notice = notice
+# #set property
+# logging.Logger.trace = trace
+# logging.Logger.save = save
+# logging.Logger.notice = notice
