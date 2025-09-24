@@ -10,15 +10,21 @@
     "OPENINTEREST": "GARBAGE"
   },
   "NSE_NFO_PORTS": {
-    "DATETIME": "10",
-    "LTP": "302",
-    "BUY_PRICE": "301",
-    "BUY_QTY": "13148",
-    "SELL_PRICE": "300",
-    "SELL_QTY": "304",
-    "LTQ": "3"
+    "LTP": "2",
+    "BUY_PRICE": "4",
+    "BUY_QTY": "6",
+    "SELL_PRICE": "5",
+    "SELL_QTY": "7",
+    "LTQ": "3",
+    "OPENINTEREST": "308"
   },
   "CSV_HEADER": "Ticker,Date,Time,LTP,BuyPrice,BuyQty,SellPrice,SellQty,LTQ,OpenInterest",
+  "FTP_CONFIG_DEFAULT":{
+    "host":"172.22.225.179",
+    "username":"cisl\\gunjan",
+    "password":"8&(8ZDV9kG3b",
+    "file_path":"D:\\Developers\\Kaustubh\\AMFII_TICK_FTP"
+  },
   "DB_CONFIG_DEFAULT": {
     "host": "172.22.225.155",
     "user": "cog_ws_user",

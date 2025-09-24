@@ -40,3 +40,7 @@ SCHEDULE_INTERVAL = int(PATHS["interval_hours"]) * 3600
 #Sql Constants
 DB_CONFIG = CONFIG["DB_CONFIG_DEFAULT"]
 SP_CONFIG = CONFIG["SP_CONFIGS"]["nse_symbol_mapper"]
+
+#FTP Constants
+
+FTP_CONFIG = CONFIG.get("FTP_CONFIG_DEFAULT",{})

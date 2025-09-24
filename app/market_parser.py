@@ -16,11 +16,13 @@ class SplitMarketDataParser:
         
         self.exchange = exchange
         
-        self.ports = CONFIG["NSE_PORTS"] if exchange == "NSE" else CONFIG["BSE_PORTS"]
+        self.ports = CONFIG["NSE_PORTS"] if self.exchange == "NSE" else CONFIG["NSE_NFO_PORTS"]
         self.header = CONFIG.get("CSV_HEADER","Ticker,Date,Time,Ltp,BuyPrice,BuyQty,SellPrice,SellQty,Ltq,OpenInterest")
         self.header_count = len(self.header.split(","))
         self.logger = get_logger()
         self.output_path = output_path
+        
+        self.logger.info(f"Program Running for Exchange: {self.exchange}")
         
         if not output_path:
             self.logger.warning(f"SplitMarketDataParser.__init__ -> Output Path not passed. Defaulting..")
@@ -77,6 +79,8 @@ class SplitMarketDataParser:
             
         
     def extract_ports(self, ticker: str):
+        
+        data_set = []
        
         if self.exchange == "NSE":
             ticker_sections = ticker.strip().split("||")
@@ -88,7 +92,7 @@ class SplitMarketDataParser:
             kv_pairs = [kv.split("=", 1) for kv in field_values.split("~") if "=" in kv]
             field_map = {k: v.strip() for k, v in kv_pairs}
 
-            data_set = []
+
             for port_name, port_val in self.ports.items():
                 if port_name == "DATETIME":
                     value = field_map.get(port_val, "")
@@ -108,15 +112,18 @@ class SplitMarketDataParser:
         if self.exchange == "NFO":
             other,ticker_sections = ticker.strip().split(";",1)
             _time,symbol = other.split("CPR") 
-            date = datetime.now().strftime("%y-%m-%d")
+            date = datetime.now().strftime("%d-%m-%Y")
             
-            kv_pairs = [kv.split("=",1) for kv in ticker_sections.split(";") if ";" in kv]
-            field_map = {k: v.strip() for k, v in kv_pairs}
+            ditr = [kv.strip().split("=") for kv in ticker_sections.split(";") if kv.strip()]
+            field_map = {k: v.strip() for k, v in ditr}
+            # print(field_map)
             
-            data_set = [date,_time.strip()]
+            data_set.extend( [date,_time.strip()])
             for port_name,port_val in self.ports.items():
                 value = field_map.get(port_val, "0") or "0"
+                # print(f"PortName: {port_name}: PortVal: {value}")
                 data_set.append(value)  
+            # print(ticker_sections)
         
         
         #Check if the tick is completely empty or not

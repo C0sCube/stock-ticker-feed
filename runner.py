@@ -1,18 +1,22 @@
 from datetime import datetime
 import os, traceback, time, zipfile
+from ftplib import FTP
 from app.market_parser import SplitMarketDataParser
 from app.logger import get_logger
+from app.ftp_connector import ftp_file_transfer
 from app.utils import Helper
-from app.constants import INPUT_PATH, OUTPUT_DIR,ZIP_DIR, ZIP_FILE_NAME
+from app.constants import INPUT_PATH, OUTPUT_DIR,ZIP_DIR
 
 today_date = datetime.now().strftime("%d-%m-%Y")
 
+EXCHANGE = "NFO"
+logger = get_logger()
 def run():
-    logger = get_logger()
+    # logger = get_logger()
     
     folder_path = Helper.create_dir(INPUT_PATH,today_date)
     output_path = Helper.create_dir(OUTPUT_DIR, today_date)
-    zip_path = os.path.join(ZIP_DIR,f"{ZIP_FILE_NAME}_{today_date}.zip")
+    zip_path = os.path.join(ZIP_DIR,f"{EXCHANGE}_PARSED_CSV_{today_date}.zip")
     
     logger.info(f"Program Has Started. {datetime.now()}")
     time.sleep(5)
@@ -24,7 +28,7 @@ def run():
         logger.warning(f"Folder: {folder_path} has no files attached.")
     
 
-    parser = SplitMarketDataParser(output_path=output_path, exchange="NSE")
+    parser = SplitMarketDataParser(output_path=output_path, exchange=EXCHANGE,bin_size=10)
     
     src_total_tick_count = 0
     for file_name in data_files:
@@ -47,6 +51,7 @@ def run():
     try:
         parser.flush_all_data()
         zip_folder(output_path,zip_path)
+        ftp_file_transfer(zip_path)
     except Exception as e:
         logger.error(f"Post Files Parsing: {type(e).__name__}: {e}")
         logger.debug(traceback.format_exc())
@@ -55,12 +60,18 @@ def run():
 
 def sorted_rate_files(path):
     files = os.listdir(path)
+    # logger = get_logger()
     rate_files = [f for f in files if f.endswith(".txt")]
-    rate_files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
+    try:
+        rate_files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
+    except Exception as e:
+        logger.error(f"File Fetch Error: {type(e).__name__}: {e}")
+        logger.debug(traceback.format_exc())
+        logger.info("Returning just list of text files")
     return rate_files
 
 def zip_folder(folder_path, zip_path):
-    logger = get_logger()
+    # logger = get_logger()
     logger.info(f"Zipping folder: {folder_path} into {zip_path}")
     try:
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -75,3 +86,4 @@ def zip_folder(folder_path, zip_path):
     except Exception as e:
         logger.error(f"Zipping Error: {type(e).__name__}: {e}")
         logger.debug(traceback.format_exc())
+        
