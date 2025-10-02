@@ -1,21 +1,10 @@
-import mysql.connector
-import json
-from app.constants import DB_CONFIG
+from app.ftp_connector import ftp_file_transfer
+from app.logger import setup_logger, set_logger
+import logging
+# Initialize scheduler logger
+log_dir = r"C:\Users\kaustubh.keny\Projects\OUTPUTS\ticker-ops\logs"
+logger = setup_logger(name="scheduler", log_dir=log_dir, console_level=logging.INFO)
+set_logger(logger)
+path = r"C:\Users\kaustubh.keny\Downloads\lookup.csv"
 
-conn = mysql.connector.connect(**DB_CONFIG)
-cursor = conn.cursor()
-
-cursor.callproc("WS_get_exchange_mapping_symbol", ("NS", None, None))
-
-for result in cursor.stored_results():
-    rows = result.fetchall()
-    columns = result.column_names
-    data = [dict(zip(columns, row)) for row in rows]
-    json_output = json.dumps(data, indent=2)
-
-    # Save to file
-    with open('exchange_mapping.json', 'w') as f:
-        f.write(json_output)
-
-cursor.close()
-conn.close()
+ftp_file_transfer(path)

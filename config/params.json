@@ -10,6 +10,7 @@
     "OPENINTEREST": "GARBAGE"
   },
   "NSE_NFO_PORTS": {
+    "DATETIME": "10",
     "LTP": "2",
     "BUY_PRICE": "4",
     "BUY_QTY": "6",
@@ -18,12 +19,27 @@
     "LTQ": "3",
     "OPENINTEREST": "308"
   },
+  "NSE_NFO_FUTURES": {
+    "F": "January",
+    "G": "February",
+    "H": "March",
+    "J": "April",
+    "K": "May",
+    "M": "June",
+    "N": "July",
+    "Q": "August",
+    "U": "September",
+    "V": "October",
+    "X": "November",
+    "Z": "December"
+  },
   "CSV_HEADER": "Ticker,Date,Time,LTP,BuyPrice,BuyQty,SellPrice,SellQty,LTQ,OpenInterest",
-  "FTP_CONFIG_DEFAULT":{
-    "host":"172.22.225.179",
-    "username":"cisl\\gunjan",
-    "password":"8&(8ZDV9kG3b",
-    "file_path":"D:\\Developers\\Kaustubh\\AMFII_TICK_FTP"
+  "FTP_CONFIG_DEFAULT": {
+    "host": "192.168.1.180",
+    "port": 22,
+    "username": "cisl\\fhfiles",
+    "password": "1hE8kWx9VmP3TsB",
+    "file_path": "D:\\TickerSG\\FTPFolder\\FH_Config_Files\\OTC_INPUT\\AMFII_TICK_PARSER_Test"
   },
   "DB_CONFIG_DEFAULT": {
     "host": "172.22.225.155",
@@ -50,7 +66,7 @@
     "MCX": "MCX",
     "NCDEX": "NCDEX"
   },
-  "BSE_SYMBOL_MAPPER":{},
+  "BSE_SYMBOL_MAPPER": {},
   "NSE_SYMBOL_MAPPER": {
     "DOLLINDU.BS": "531367",
     "20MICR.NS": "20MICRONS",

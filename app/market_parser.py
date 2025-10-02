@@ -1,5 +1,5 @@
 import os, re, traceback
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from app.logger import get_logger
 from app.sql_connector import fetch_symbol_mapping
 from app.constants import CONFIG, OUTPUT_DIR
@@ -56,26 +56,6 @@ class SplitMarketDataParser:
             self.symbol_mapper = {}
             
             
-    # def extract_nfo_ports(self,ticker:str):
-    #     other,ticker_sections = ticker.strip().split(";",1)
-        
-    #     _time,symbol = other.split("CPR")
-        
-    #     date = datetime.now().strftime("%y-%m-%d")
-        
-    #     kv_pairs = [kv.split("=",1) for kv in ticker_sections.split(";") if ";" in kv]
-    #     field_map = {k: v.strip() for k, v in kv_pairs}
-        
-    #     data_set = [date,_time.strip()]
-    #     for port_name,port_val in self.ports.items():
-    #         value = field_map.get(port_val, "0") or "0"
-    #         data_set.append(value)
-        
-    #     if all(i == "0" for i in data_set):
-    #         self.logger.debug(f"Function: SplitMarketDataParser.export_ports -> Empty tick skipped: {ticker}")
-    #         return None,[]
-        
-    #     return symbol.strip(), data_set
             
         
     def extract_ports(self, ticker: str):
@@ -106,25 +86,37 @@ class SplitMarketDataParser:
                     data_set.extend([date,time_])
                 else:
                     value = field_map.get(port_val, "0") or "0"
-                    # value = float(value)
                     data_set.append(value)
         
         if self.exchange == "NFO":
             other,ticker_sections = ticker.strip().split(";",1)
             _time,symbol = other.split("CPR") 
-            date = datetime.now().strftime("%d-%m-%Y")
+            # date = datetime.now().strftime("%d-%m-%Y")
             
             ditr = [kv.strip().split("=") for kv in ticker_sections.split(";") if kv.strip()]
             field_map = {k: v.strip() for k, v in ditr}
             # print(field_map)
             
-            data_set.extend( [date,_time.strip()])
+            # data_set.extend( [date,_time.strip()])
+            data_set = []
             for port_name,port_val in self.ports.items():
-                value = field_map.get(port_val, "0") or "0"
-                # print(f"PortName: {port_name}: PortVal: {value}")
-                data_set.append(value)  
-            # print(ticker_sections)
-        
+                if port_name == "DATETIME":
+                    epoch_value = field_map.get(port_val, "")
+                    # dateTime = datetime.fromtimestamp(int(epoch_value)) #local time
+                    utc_dt = datetime.fromtimestamp(int(epoch_value), tz=timezone.utc)
+                    ist_offset = timedelta(hours=5, minutes=30)
+                    ist_dt = utc_dt + ist_offset
+                    value = str(ist_dt)
+                       
+                    if value and " " in value:
+                        date, time_ = value.split(" ", 1)
+                    else:
+                        date,time_ = "0","0" #value = "0,0"  # date,time fallback
+                    
+                    data_set.extend([date,time_])
+                else:
+                    value = field_map.get(port_val, "0") or "0"
+                    data_set.append(value)
         
         #Check if the tick is completely empty or not
         if all(i == "0" for i in data_set):
@@ -137,7 +129,7 @@ class SplitMarketDataParser:
         try:
             mapped = self.symbol_mapper.get(_symbol, "")
             if not mapped:
-                self.logger.debug(f"Symbol mapping not found for {_symbol} ,using original.")
+                # self.logger.debug(f"Symbol mapping not found for {_symbol} ,using original.")
                 return _symbol.strip()
 
             if isinstance(self.ext, str) and self.ext:
@@ -157,11 +149,11 @@ class SplitMarketDataParser:
             return
 
         _symbol = self.symbol_operations(symbol)
-        # _symbol = symbol
             
         #checker for unique symbol
         if _symbol not in self.tick_bin:
             self.tick_bin[_symbol] = [self.header + "\n"] #header added
+            # self.logger.info(f"New Symbol Detected: {_symbol}")
             
         data_row = ",".join(data)
         save_data = f"{_symbol},{data_row}\n"

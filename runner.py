@@ -1,9 +1,9 @@
 from datetime import datetime
 import os, traceback, time, zipfile
-from ftplib import FTP
 from app.market_parser import SplitMarketDataParser
 from app.logger import get_logger
 from app.ftp_connector import ftp_file_transfer
+from app.zip_connector import zip_folder
 from app.utils import Helper
 from app.constants import INPUT_PATH, OUTPUT_DIR,ZIP_DIR
 
@@ -28,7 +28,7 @@ def run():
         logger.warning(f"Folder: {folder_path} has no files attached.")
     
 
-    parser = SplitMarketDataParser(output_path=output_path, exchange=EXCHANGE,bin_size=10)
+    parser = SplitMarketDataParser(output_path=output_path, exchange=EXCHANGE,bin_size=60)
     
     src_total_tick_count = 0
     for file_name in data_files:
@@ -36,12 +36,16 @@ def run():
         logger.info(f"Processing file: {file_name}")
         try:
             lines = Helper.read_file(file_path).splitlines()
-            for line in lines:
+            for idx,line in enumerate(lines):
                 try:
                     parser.process_ticker(line)
                 except Exception as e:
                     logger.error(f"Ticker error in {file_name}: {type(e).__name__}: {e}")
                     logger.debug(traceback.format_exc())
+                    
+                if EXCHANGE == "NFO" and (idx+1)%5000 == 0:
+                    logger.info(f"Total {idx+1} ticks completed.")
+                    
             src_total_tick_count += len(lines)
             logger.info(f"Completed: {file_name} | Ticks: {len(lines)} | Total: {src_total_tick_count}")
         except Exception as e:
@@ -60,7 +64,6 @@ def run():
 
 def sorted_rate_files(path):
     files = os.listdir(path)
-    # logger = get_logger()
     rate_files = [f for f in files if f.endswith(".txt")]
     try:
         rate_files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
@@ -70,20 +73,3 @@ def sorted_rate_files(path):
         logger.info("Returning just list of text files")
     return rate_files
 
-def zip_folder(folder_path, zip_path):
-    # logger = get_logger()
-    logger.info(f"Zipping folder: {folder_path} into {zip_path}")
-    try:
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            file_count = 0
-            for root, dirs, files in os.walk(folder_path):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, folder_path)
-                    zipf.write(file_path, arcname)
-                    file_count += 1
-            logger.info(f"Zipping completed. {file_count} files added.")
-    except Exception as e:
-        logger.error(f"Zipping Error: {type(e).__name__}: {e}")
-        logger.debug(traceback.format_exc())
-        
